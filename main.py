@@ -20,9 +20,8 @@ import datetime
 import itertools
 
 def api_connect(config_dict):
-    print(f"Connecting to Meraki API")
-    dashboard = meraki.DashboardAPI(config_dict["api_key"], output_log=False)
-    return (dashboard)
+    print("Connecting to Meraki API")
+    return meraki.DashboardAPI(config_dict["api_key"], output_log=False)
 
 def get_organization_id(config_dict):
     org_id = 0
@@ -36,10 +35,8 @@ def get_organization_id(config_dict):
     for org in response:
         if config_dict["org_name"].lower() in org["name"].lower():
             return(org["id"])
-            print(f" Organization Id for {org_name} is {org_id}")
-            break
         else:
-            print(f" Please check config file and add a valid organization name")
+            print(" Please check config file and add a valid organization name")
 
 def get_networks_id(config_dict, organization_id):
     print(f"Looking for networks in organization id {organization_id}")
@@ -56,24 +53,32 @@ def main():
 
     # reading config values from config file
     config = configparser.RawConfigParser()
-    configfile_path = current_path + "//config.cfg"
+    configfile_path = f"{current_path}//config.cfg"
     config.read(configfile_path)
     config_dict = dict(config.items('config'))
 
     # Variable definitions
-    csv_file = current_path + "//outputs//" + config_dict["org_name"] + "_"+  config_dict["csv_file_name"] +"_" + datetime.datetime.now().strftime('%m_%d_%Y_%H_%M_%S')+".csv"
+    csv_file = (
+        f"{current_path}//outputs//"
+        + config_dict["org_name"]
+        + "_"
+        + config_dict["csv_file_name"]
+        + "_"
+        + datetime.datetime.now().strftime('%m_%d_%Y_%H_%M_%S')
+        + ".csv"
+    )
     final_info=[]
 
     #getting organization ID and Networks within the organization
     organization_id = get_organization_id(config_dict)
     network_id = get_networks_id(config_dict, organization_id)
 
+    insert_headers=True
     #to extract VLAN information from the different networks in the organization
     for network in network_id:
         checking_network = network["id"]
         print(f" Extracting list of VLANs for network ID: {checking_network}")
         dashboard = api_connect(config_dict)
-        insert_headers=True
         try:
             #get information about VLANS and Networks
             dict_vlans_details = dashboard.appliance.getNetworkApplianceVlans(checking_network)
@@ -93,7 +98,13 @@ def main():
 
         final_info.append(dict_vlans_details)
 
-    json_file=current_path + "//outputs//" + config_dict["org_name"] +"_vlan-info_"+datetime.datetime.now().strftime('%m_%d_%Y_%H_%M_%S')+".json"
+    json_file = (
+        f"{current_path}//outputs//"
+        + config_dict["org_name"]
+        + "_vlan-info_"
+        + datetime.datetime.now().strftime('%m_%d_%Y_%H_%M_%S')
+        + ".json"
+    )
     with open(json_file, 'a') as f:
         json.dump(final_info, f,indent=3)
 
